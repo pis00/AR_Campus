@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.XR.ARFoundation;
 using UnityEngine.XR.ARSubsystems;
 using System.Collections;
+using System;
 
 public class AnchorLoader : MonoBehaviour
 {
@@ -19,23 +20,20 @@ public class AnchorLoader : MonoBehaviour
         yield return new WaitForSeconds(delaySeconds);
 
         int count = PlayerPrefs.GetInt("anchor_count", 0);
+        Debug.Log($"[AnchorLoader] Anchors to load: {count}");
 
         for (int i = 0; i < count; i++)
         {
-            string keyLow = $"anchor_guid_low_{i}";
-            string keyHigh = $"anchor_guid_high_{i}";
-
-            if (!PlayerPrefs.HasKey(keyLow) || !PlayerPrefs.HasKey(keyHigh))
+            string key = $"anchor_guid_{i}";
+            if (!PlayerPrefs.HasKey(key))
             {
-                Debug.LogWarning($"Missing keys for anchor {i}");
+                Debug.LogWarning($"[AnchorLoader] Missing key: {key}");
                 continue;
             }
 
-            ulong low = ulong.Parse(PlayerPrefs.GetString(keyLow));
-            ulong high = ulong.Parse(PlayerPrefs.GetString(keyHigh));
-            SerializableGuid guid = new SerializableGuid(low, high);
+            string guidString = PlayerPrefs.GetString(key);
+            SerializableGuid guid = ParseGuidFromString(guidString);
 
-            // Launch the async load using a coroutine-friendly pattern
             yield return LoadAndPlaceAnchor(guid, i);
         }
     }
@@ -53,5 +51,14 @@ public class AnchorLoader : MonoBehaviour
         {
             Debug.LogWarning($"❌ Failed to load anchor {index}. Status: {result.status}");
         }
+    }
+
+    private SerializableGuid ParseGuidFromString(string guidString)
+    {
+        Guid guid = Guid.Parse(guidString);
+        byte[] bytes = guid.ToByteArray();
+        ulong low = BitConverter.ToUInt64(bytes, 0);
+        ulong high = BitConverter.ToUInt64(bytes, 8);
+        return new SerializableGuid(low, high);
     }
 }
