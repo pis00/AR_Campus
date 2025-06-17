@@ -14,31 +14,42 @@ public class AnchorSaver : MonoBehaviour
 
     private void Start()
     {
-        // Load anchor count at startup
         anchorIndex = PlayerPrefs.GetInt("anchor_count", 0);
         Debug.Log($"[AnchorSaver] Loaded anchor index: {anchorIndex}");
     }
 
     private void Update()
     {
-        if (Input.touchCount == 0 || Input.GetTouch(0).phase != TouchPhase.Began)
+        if (Input.touchCount == 0)
             return;
 
-        Vector2 touchPosition = Input.GetTouch(0).position;
+        Touch touch = Input.GetTouch(0);
+        if (touch.phase != TouchPhase.Began)
+            return;
+
+        Vector2 touchPosition = touch.position;
+        Debug.Log($"[Touch] Touched at screen position: {touchPosition}");
 
         if (raycastManager.Raycast(touchPosition, hits, TrackableType.PlaneWithinPolygon))
         {
             Pose pose = hits[0].pose;
             ARPlane plane = hits[0].trackable as ARPlane;
 
+            Debug.Log($"[Raycast] Hit on AR plane. Pose position: {pose.position}");
+
             if (plane != null)
             {
+                Debug.Log("[Raycast] Plane is valid. Attempting to create anchor...");
                 SaveAnchorAsync(plane, pose);
             }
             else
             {
-                Debug.LogWarning("[AnchorSaver] Trackable is not an ARPlane.");
+                Debug.LogWarning("[AnchorSaver] Hit trackable is NOT an ARPlane.");
             }
+        }
+        else
+        {
+            Debug.LogWarning("[Raycast] No AR plane detected at touch position.");
         }
     }
 
@@ -47,16 +58,19 @@ public class AnchorSaver : MonoBehaviour
         ARAnchor anchor = anchorManager.AttachAnchor(plane, pose);
         if (anchor == null)
         {
-            Debug.LogError("[AnchorSaver] Failed to create anchor.");
+            Debug.LogError("[AnchorSaver] Failed to attach anchor to plane.");
             return;
         }
 
+        Debug.Log($"[AnchorSaver] Anchor created at position: {anchor.transform.position}");
+
         var result = await anchorManager.TrySaveAnchorAsync(anchor);
+        Debug.Log($"[AnchorSaver] Save attempt status: {result.status}");
+
         if (result.status.ToString() == "Success")
         {
             SerializableGuid guid = result.value;
 
-            // Save guid as string
             PlayerPrefs.SetString($"anchor_guid_{anchorIndex}", guid.ToString());
             anchorIndex++;
             PlayerPrefs.SetInt("anchor_count", anchorIndex);
