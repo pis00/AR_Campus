@@ -2198,6 +2198,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1437213686}
   - component: {fileID: 1437213685}
+  - component: {fileID: 1437213687}
   m_Layer: 0
   m_Name: AnchorManager
   m_TagString: Untagged
@@ -2234,6 +2235,20 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1437213687
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1437213684}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d821ccb9340a543a5ab5d12fc7269a99, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  anchorManager: {fileID: 331264288}
+  prefab: {fileID: 7048437549328742016, guid: 7557bd54dbbf246cb991c3c8f48c4492, type: 3}
 --- !u!1 &1461866188
 GameObject:
   m_ObjectHideFlags: 0
