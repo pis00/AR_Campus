@@ -12,26 +12,32 @@ public class AnchorSaver : MonoBehaviour
     private static List<ARRaycastHit> hits = new();
     private int anchorIndex = 0;
 
-    void Update()
+    private void Start()
     {
-        if (Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Began)
+        // Load anchor count at startup
+        anchorIndex = PlayerPrefs.GetInt("anchor_count", 0);
+        Debug.Log($"[AnchorSaver] Loaded anchor index: {anchorIndex}");
+    }
+
+    private void Update()
+    {
+        if (Input.touchCount == 0 || Input.GetTouch(0).phase != TouchPhase.Began)
+            return;
+
+        Vector2 touchPosition = Input.GetTouch(0).position;
+
+        if (raycastManager.Raycast(touchPosition, hits, TrackableType.PlaneWithinPolygon))
         {
-            Vector2 touchPosition = Input.GetTouch(0).position;
+            Pose pose = hits[0].pose;
+            ARPlane plane = hits[0].trackable as ARPlane;
 
-            if (raycastManager.Raycast(touchPosition, hits, TrackableType.PlaneWithinPolygon))
+            if (plane != null)
             {
-                var hit = hits[0];
-                Pose pose = hit.pose;
-
-                ARPlane plane = hit.trackable as ARPlane;
-                if (plane != null)
-                {
-                    SaveAnchorAsync(plane, pose);
-                }
-                else
-                {
-                    Debug.LogWarning("Trackable is not an ARPlane.");
-                }
+                SaveAnchorAsync(plane, pose);
+            }
+            else
+            {
+                Debug.LogWarning("[AnchorSaver] Trackable is not an ARPlane.");
             }
         }
     }
@@ -41,7 +47,7 @@ public class AnchorSaver : MonoBehaviour
         ARAnchor anchor = anchorManager.AttachAnchor(plane, pose);
         if (anchor == null)
         {
-            Debug.LogError("Failed to create anchor.");
+            Debug.LogError("[AnchorSaver] Failed to create anchor.");
             return;
         }
 
@@ -49,15 +55,18 @@ public class AnchorSaver : MonoBehaviour
         if (result.status.ToString() == "Success")
         {
             SerializableGuid guid = result.value;
-            Debug.Log($"Anchor saved successfully. GUID: {guid}");
 
+            // Save guid as string
             PlayerPrefs.SetString($"anchor_guid_{anchorIndex}", guid.ToString());
-            PlayerPrefs.Save();
             anchorIndex++;
+            PlayerPrefs.SetInt("anchor_count", anchorIndex);
+            PlayerPrefs.Save();
+
+            Debug.Log($"[AnchorSaver] Anchor #{anchorIndex - 1} saved. GUID: {guid}");
         }
         else
         {
-            Debug.LogWarning($"Anchor saving failed. Status: {result.status}");
+            Debug.LogWarning($"[AnchorSaver] Anchor saving failed. Status: {result.status}");
         }
     }
 }
