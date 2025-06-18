@@ -31,40 +31,15 @@ public class AnchorSaver : MonoBehaviour
         Debug.Log($"[AnchorSaver] Loaded anchor index: {anchorIndex}");
     }
 
-    private void Update()
+private void Update()
+{
+
+    if (Input.touchCount > 0)
     {
-        if (Input.touchCount == 0)
-            return;
-
         Touch touch = Input.GetTouch(0);
-
-        if (touch.phase != TouchPhase.Began)
-            return;
-
-        Debug.Log($"[Touch] Touch began at: {touch.position}");
-
-        if (raycastManager.Raycast(touch.position, hits, TrackableType.PlaneWithinPolygon))
-        {
-            Pose pose = hits[0].pose;
-            ARPlane plane = hits[0].trackable as ARPlane;
-
-            Debug.Log($"[Raycast] Hit plane at: {pose.position}");
-
-            if (plane != null)
-            {
-                Debug.Log("[AnchorSaver] Valid plane found. Saving anchor...");
-                SaveAnchorAsync(plane, pose);
-            }
-            else
-            {
-                Debug.LogWarning("[AnchorSaver] Trackable is not an ARPlane.");
-            }
-        }
-        else
-        {
-            Debug.LogWarning("[Raycast] No AR plane hit at touch point.");
-        }
+        Debug.Log($"[DEBUG] Touch detected at: {touch.position}, phase: {touch.phase}");
     }
+}
 
     private async void SaveAnchorAsync(ARPlane plane, Pose pose)
     {
