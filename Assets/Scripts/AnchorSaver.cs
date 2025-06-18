@@ -27,6 +27,11 @@ public class AnchorSaver : MonoBehaviour
 
     private void Start()
     {
+        if (visualPrefab != null)
+{
+    GameObject test = Instantiate(visualPrefab, Vector3.zero, Quaternion.identity);
+    Debug.Log("[DEBUG] Spawned prefab at Vector3.zero in Start()");
+}
         anchorIndex = PlayerPrefs.GetInt("anchor_count", 0);
         Debug.Log($"[AnchorSaver] Loaded anchor index: {anchorIndex}");
     }
