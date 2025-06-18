@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.XR.ARFoundation;
 using UnityEngine.XR.ARSubsystems;
+using UnityEngine.InputSystem;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -16,35 +17,59 @@ public class AnchorSaver : MonoBehaviour
     private static readonly List<ARRaycastHit> hits = new();
     private int anchorIndex = 0;
 
+    private InputAction touchAction;
+
     private void Awake()
     {
-        // Auto-assign if not manually set (using updated Unity API)
         if (raycastManager == null)
             raycastManager = FindFirstObjectByType<ARRaycastManager>();
         if (anchorManager == null)
             anchorManager = FindFirstObjectByType<ARAnchorManager>();
+
+        // Set up InputAction to detect taps
+        touchAction = new InputAction(type: InputActionType.PassThrough, binding: "<Touchscreen>/primaryTouch/press");
+        touchAction.performed += OnTouchPressed;
     }
 
-    private void Start()
+    private void OnEnable()
     {
-        if (visualPrefab != null)
-{
-    GameObject test = Instantiate(visualPrefab, Vector3.zero, Quaternion.identity);
-    Debug.Log("[DEBUG] Spawned prefab at Vector3.zero in Start()");
-}
+        touchAction.Enable();
         anchorIndex = PlayerPrefs.GetInt("anchor_count", 0);
         Debug.Log($"[AnchorSaver] Loaded anchor index: {anchorIndex}");
     }
 
-private void Update()
-{
-
-    if (Input.touchCount > 0)
+    private void OnDisable()
     {
-        Touch touch = Input.GetTouch(0);
-        Debug.Log($"[DEBUG] Touch detected at: {touch.position}, phase: {touch.phase}");
+        touchAction.Disable();
     }
-}
+
+    private void OnTouchPressed(InputAction.CallbackContext context)
+    {
+        Vector2 screenPosition = Touchscreen.current.primaryTouch.position.ReadValue();
+        Debug.Log($"[InputSystem] Tap at screen position: {screenPosition}");
+
+        if (raycastManager.Raycast(screenPosition, hits, TrackableType.PlaneWithinPolygon))
+        {
+            Pose pose = hits[0].pose;
+            ARPlane plane = hits[0].trackable as ARPlane;
+
+            Debug.Log($"[Raycast] Hit plane at: {pose.position}");
+
+            if (plane != null)
+            {
+                Debug.Log("[AnchorSaver] Valid plane found. Saving anchor...");
+                SaveAnchorAsync(plane, pose);
+            }
+            else
+            {
+                Debug.LogWarning("[AnchorSaver] Trackable is not an ARPlane.");
+            }
+        }
+        else
+        {
+            Debug.LogWarning("[Raycast] No AR plane hit at tap point.");
+        }
+    }
 
     private async void SaveAnchorAsync(ARPlane plane, Pose pose)
     {
