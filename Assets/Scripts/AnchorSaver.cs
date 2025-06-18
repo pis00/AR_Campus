@@ -26,7 +26,6 @@ public class AnchorSaver : MonoBehaviour
         if (anchorManager == null)
             anchorManager = FindFirstObjectByType<ARAnchorManager>();
 
-        // Set up InputAction to detect taps
         touchAction = new InputAction(type: InputActionType.PassThrough, binding: "<Touchscreen>/primaryTouch/press");
         touchAction.performed += OnTouchPressed;
     }
@@ -99,8 +98,15 @@ public class AnchorSaver : MonoBehaviour
 
             if (visualPrefab != null)
             {
-                Instantiate(visualPrefab, anchor.transform.position, anchor.transform.rotation);
-                Debug.Log("[AnchorSaver] Visual prefab instantiated at anchor.");
+                GameObject arrow = Instantiate(visualPrefab, anchor.transform.position, Quaternion.identity);
+
+                // Make arrow face camera forward horizontally
+                Vector3 camForward = Camera.main.transform.forward;
+                camForward.y = 0;
+                if (camForward != Vector3.zero)
+                    arrow.transform.rotation = Quaternion.LookRotation(camForward);
+
+                Debug.Log("[AnchorSaver] Visual prefab instantiated and rotated toward camera direction.");
             }
         }
         else

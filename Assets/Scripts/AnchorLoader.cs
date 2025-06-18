@@ -16,7 +16,7 @@ public class AnchorLoader : MonoBehaviour
 
     private IEnumerator LoadAnchorsWithDelay(float delaySeconds)
     {
-        Debug.Log($"Waiting {delaySeconds} seconds before loading anchors...");
+        Debug.Log($"[AnchorLoader] Waiting {delaySeconds} seconds before loading anchors...");
         yield return new WaitForSeconds(delaySeconds);
 
         int count = PlayerPrefs.GetInt("anchor_count", 0);
@@ -32,7 +32,17 @@ public class AnchorLoader : MonoBehaviour
             }
 
             string guidString = PlayerPrefs.GetString(key);
-            SerializableGuid guid = ParseGuidFromString(guidString);
+            SerializableGuid guid;
+
+            try
+            {
+                guid = ParseGuidFromString(guidString);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[AnchorLoader] Failed to parse GUID '{guidString}' - {ex.Message}");
+                continue;
+            }
 
             yield return LoadAndPlaceAnchor(guid, i);
         }
@@ -40,16 +50,28 @@ public class AnchorLoader : MonoBehaviour
 
     private async System.Threading.Tasks.Task LoadAndPlaceAnchor(SerializableGuid guid, int index)
     {
+        Debug.Log($"[AnchorLoader] Trying to load anchor {index}: {guid}");
+
         var result = await anchorManager.TryLoadAnchorAsync(guid);
         if (result.status.ToString() == "Success")
         {
             ARAnchor anchor = result.value;
-            Instantiate(prefab, anchor.transform);
-            Debug.Log($"✅ Anchor {index} loaded.");
+
+            if (prefab != null)
+            {
+                GameObject visual = Instantiate(prefab, anchor.transform.position, Quaternion.identity);
+
+                Vector3 camForward = Camera.main.transform.forward;
+                camForward.y = 0;
+                if (camForward != Vector3.zero)
+                    visual.transform.rotation = Quaternion.LookRotation(camForward);
+            }
+
+            Debug.Log($"✅ [AnchorLoader] Anchor {index} loaded at {anchor.transform.position}");
         }
         else
         {
-            Debug.LogWarning($"❌ Failed to load anchor {index}. Status: {result.status}");
+            Debug.LogWarning($"❌ [AnchorLoader] Failed to load anchor {index}. Status: {result.status}");
         }
     }
 
