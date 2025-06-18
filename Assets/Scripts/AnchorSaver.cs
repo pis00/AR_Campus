@@ -6,11 +6,24 @@ using System.Threading.Tasks;
 
 public class AnchorSaver : MonoBehaviour
 {
+    [Header("AR Foundation References")]
     [SerializeField] private ARRaycastManager raycastManager;
     [SerializeField] private ARAnchorManager anchorManager;
 
-    private static List<ARRaycastHit> hits = new();
+    [Header("Prefab to Instantiate (Optional)")]
+    [SerializeField] private GameObject visualPrefab;
+
+    private static readonly List<ARRaycastHit> hits = new();
     private int anchorIndex = 0;
+
+    private void Awake()
+    {
+        // Auto-assign if not manually set (using updated Unity API)
+        if (raycastManager == null)
+            raycastManager = FindFirstObjectByType<ARRaycastManager>();
+        if (anchorManager == null)
+            anchorManager = FindFirstObjectByType<ARAnchorManager>();
+    }
 
     private void Start()
     {
@@ -20,57 +33,54 @@ public class AnchorSaver : MonoBehaviour
 
     private void Update()
     {
-
         if (Input.touchCount == 0)
             return;
 
         Touch touch = Input.GetTouch(0);
-        Debug.Log($"[Update] Touch detected. Phase: {touch.phase}");
 
         if (touch.phase != TouchPhase.Began)
             return;
 
-        Vector2 touchPosition = touch.position;
-        Debug.Log($"[Touch] Touched at screen position: {touchPosition}");
+        Debug.Log($"[Touch] Touch began at: {touch.position}");
 
-        if (raycastManager.Raycast(touchPosition, hits, TrackableType.PlaneWithinPolygon))
+        if (raycastManager.Raycast(touch.position, hits, TrackableType.PlaneWithinPolygon))
         {
             Pose pose = hits[0].pose;
             ARPlane plane = hits[0].trackable as ARPlane;
 
-            Debug.Log($"[Raycast] Hit at world position: {pose.position}");
+            Debug.Log($"[Raycast] Hit plane at: {pose.position}");
 
             if (plane != null)
             {
-                Debug.Log("[Raycast] Plane is valid. Creating anchor...");
+                Debug.Log("[AnchorSaver] Valid plane found. Saving anchor...");
                 SaveAnchorAsync(plane, pose);
             }
             else
             {
-                Debug.LogWarning("[AnchorSaver] Hit is NOT an ARPlane.");
+                Debug.LogWarning("[AnchorSaver] Trackable is not an ARPlane.");
             }
         }
         else
         {
-            Debug.LogWarning("[Raycast] No AR plane hit.");
+            Debug.LogWarning("[Raycast] No AR plane hit at touch point.");
         }
     }
 
     private async void SaveAnchorAsync(ARPlane plane, Pose pose)
     {
-        Debug.Log("[AnchorSaver] Trying to attach anchor...");
+        Debug.Log("[AnchorSaver] Attempting to attach anchor...");
 
         ARAnchor anchor = anchorManager.AttachAnchor(plane, pose);
         if (anchor == null)
         {
-            Debug.LogError("[AnchorSaver] Failed to attach anchor.");
+            Debug.LogError("[AnchorSaver] Failed to attach anchor to plane.");
             return;
         }
 
-        Debug.Log($"[AnchorSaver] Anchor created at position: {anchor.transform.position}");
+        Debug.Log($"[AnchorSaver] Anchor created at: {anchor.transform.position}");
 
         var result = await anchorManager.TrySaveAnchorAsync(anchor);
-        Debug.Log($"[AnchorSaver] Save result: {result.status}");
+        Debug.Log($"[AnchorSaver] TrySaveAnchorAsync result: {result.status}");
 
         if (result.status.ToString() == "Success")
         {
@@ -81,10 +91,16 @@ public class AnchorSaver : MonoBehaviour
             PlayerPrefs.Save();
 
             Debug.Log($"[AnchorSaver] Anchor #{anchorIndex - 1} saved. GUID: {guid}");
+
+            if (visualPrefab != null)
+            {
+                Instantiate(visualPrefab, anchor.transform.position, anchor.transform.rotation);
+                Debug.Log("[AnchorSaver] Visual prefab instantiated at anchor.");
+            }
         }
         else
         {
-            Debug.LogWarning($"[AnchorSaver] Save failed. Status: {result.status}");
+            Debug.LogWarning($"[AnchorSaver] Anchor save failed: {result.status}");
         }
     }
 }

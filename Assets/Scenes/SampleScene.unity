@@ -2480,6 +2480,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   raycastManager: {fileID: 331264292}
   anchorManager: {fileID: 331264288}
+  visualPrefab: {fileID: 7048437549328742016, guid: 7557bd54dbbf246cb991c3c8f48c4492,
+    type: 3}
 --- !u!4 &1437213686
 Transform:
   m_ObjectHideFlags: 0
